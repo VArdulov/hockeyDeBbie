@@ -1,4 +1,9 @@
+import logging
+
 from util import get_stats, parse_user_input
+from datetime import timedelta, datetime
+
+last_request = datetime.now()
 
 opening_message = "Hi there!\n"+\
                   "My name is DeBbie, I'm a conversational agent that answers some hockey player trivia\n"+\
@@ -48,11 +53,16 @@ easter_eggs = {'sc':"Fight On for Ol' SC!",
 
 default_year = ['2018-19', '2018-2019']
 
+debug = False
+
 def construct_response_update_state(user_input, current_state):
     new_state = {}
     response = ''
     if 'easter_egg' in user_input:
         return (current_state, easter_eggs[user_input['easter_egg']])
+
+    if user_input.get('greeting', False):
+        return (current_state, opening_message)
 
     if 'categories' in user_input and len(user_input['categories']) > 0:
         new_state['categories'] = user_input['categories']
@@ -92,7 +102,6 @@ def construct_response_update_state(user_input, current_state):
         new_state['season'] = default_year
 
     if new_state == current_state:
-        print('here')
         response = ask_for_clarification
 
     if response == '':
@@ -147,8 +156,16 @@ def construct_response_update_state(user_input, current_state):
 
 def chat(current_state):
     #wait for user input
+    global last_request
     user_input = input('>')
+    time_diff = (datetime.now() - last_request).seconds
+    if debug: print('\t debug time %d seconds'%time_diff)
     user_input = parse_user_input(user_input)
+    last_request = datetime.now()
+    if time_diff > 299: # 5minutes or more
+        if debug: print('\t debug reseeting current_state')
+        return construct_response_update_state(user_input, current_state={})
+
     return construct_response_update_state(user_input, current_state)
 
 if __name__ == '__main__':
@@ -158,4 +175,4 @@ if __name__ == '__main__':
     while not good_bye_status:
         state, response = chat(state)
         print(response)
-        # print('\t debug', state)
+        if debug: print('\t debug', state)

@@ -39,6 +39,9 @@ practice_strings = ['Where does Erik Karlsson play?',
 
 html_parser = etree.HTMLParser()
 
+question_words = ['what', 'how', 'where', 'who', 'does',  'can', 'whose', 'which',
+                  'whom', 'when']
+
 
 def parse_user_input(user_input=''):
     understanding = {}
@@ -51,11 +54,15 @@ def parse_user_input(user_input=''):
         understanding = {'easter_egg':'jb'}
         return understanding
 
+    if 'hi ' in uil or 'hello ' in uil:
+        understanding['greeting'] = True
+        return understanding
+
     tokens = user_input.strip('?').split()
     understanding['player_name'] = []
     understanding['season'] = []
-    for token in tokens[1:]:
-        if token[0].isupper():
+    for token in tokens:
+        if token[0].isupper() and token.lower() not in question_words:
             if token[-2:] == "\'s":
                 understanding['player_name'].append(token[:-2])
             else:
