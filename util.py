@@ -32,11 +32,13 @@ pnf_string = 'Player not found'
 
 practice_strings = ['Where does Erik Karlsson play?',
                     'Where did John Tavares play in 2013?',
-                    'What was Drew Doughty\'s cap hit in 2014?',
+                    'What was Drew Doughty cap hit in 14?',
                     'How many goals did Joe Pavelski score in 2016?',
                     'Where was Connor McDavid born?',
                     'How tall is Ryan Getzlaf?',
                     'What team drafted Roberto Luongo?',
+                    'What position does Marc-Eduard Vlasic play?',
+                    'What about Connor McDavid?',
                     'Jesus Christ']
 
 
@@ -53,13 +55,16 @@ def parse_user_input(user_input=''):
         understanding = {'intent':'jason bourne'}
         return understanding
 
+    tokens = user_input.strip('?').split()
+    understanding['player_name'] = []
+    understanding['season'] = []
+    for token in tokens[1:]:
+        if token[0].isupper():
+            understanding['player_name'].append(token)
+        if token.isdigit():
+            understanding['season'].append(token)
 
-    parsed_input = nlp(user_input)
-    entities = parsed_input.ents
-    ent_labels = [e.label_ for e in entities]
-    understanding['players'] = [entities[i].text for i, l in enumerate(ent_labels) if l == 'PERSON']
-    understanding['seasons'] = [entities[i].text for i, l in enumerate(ent_labels) if l == 'DATE' or l == 'CARDINAL']
-    understanding['teams'] = [entities[i].text for i, l in enumerate(ent_labels) if l == 'ORG']
+    understanding['player_name'] = ' '.join(understanding['player_name'])
     
     understanding['categories'] = []
     if 'born' in uil: #really unique query
@@ -127,7 +132,7 @@ def parse_user_input(user_input=''):
 
 
 def get_stats(player_name, categories, season, playoff=False):
-    print(playoff)
+    # print(playoff)
     name_to_url = '-'.join(player_name.lower().split())
     get_url = join(cap_friendly_base_url, name_to_url)
     capfriendly_request = requests.get(get_url)
@@ -148,7 +153,9 @@ def get_stats(player_name, categories, season, playoff=False):
 
             for c in categories:
                 if c in all_categories:
-                    output[c] = html_doc.xpath(all_categories[c])[0]
+                    output[c] = html_doc.xpath(all_categories[c])
+                    if output[c] is not None and len(output[c]) > 0:
+                        output[c] = output[c][0]
                 elif c in contract_cateogries:
                     # print('accessing contract categories')
                     output[c] = current_contract_table.get(c)
@@ -191,7 +198,7 @@ if __name__ == '__main__':
                          goalie_categories, categories_per_player[i], replace=False)
         print(player_names[i])
         print('\t', choices)
-        out = get_stats(player_names[i], choices, ['2017-18', '2017-2018'], playoff=False)
+        out = get_stats(player_names[i], choices, ['2017-18', '2017-2018'], playoff=bool(randint(0, 2)))
         print('\t', out)
 
     print('data access tests completed')
