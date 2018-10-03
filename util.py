@@ -1,8 +1,3 @@
-
-
-import spacy
-nlp = spacy.load('en')
-
 import requests
 from bs4 import BeautifulSoup
 from lxml import etree
@@ -24,15 +19,15 @@ all_categories = {'position': '/html/body/div[7]/div/div/div[1]/h6[2]/text()',
 
 contract_cateogries = ['CLAUSE', 'CAP HIT', 'AAV', 'P. BONUSES', 'S. BONUSES', 'BASE SALARY', 'TOTAL SALARY']
 
-skater_categories = ['TEAM', 'G', 'A', 'TP', 'GP', 'PIM']
+skater_categories = ['Team', 'G', 'A', 'TP', 'GP', 'PIM']
 
-goalie_categories = ['TEAM', 'GP','GAA', 'SVS%']
+goalie_categories = ['Team', 'GP','GAA', 'SVS%']
 
 pnf_string = 'Player not found'
 
 practice_strings = ['Where does Erik Karlsson play?',
                     'Where did John Tavares play in 2013?',
-                    'What was Drew Doughty cap hit in 14?',
+                    'What was Drew Doughty\'s cap hit in 14?',
                     'How many goals did Joe Pavelski score in 2016?',
                     'Where was Connor McDavid born?',
                     'How tall is Ryan Getzlaf?',
@@ -44,15 +39,16 @@ practice_strings = ['Where does Erik Karlsson play?',
 
 html_parser = etree.HTMLParser()
 
+
 def parse_user_input(user_input=''):
     understanding = {}
     uil = user_input.lower()
     if 'fight on' in uil:
-        understanding = {'intent':'easter egg'}
+        understanding = {'easter_egg':'sc'}
         return understanding
 
     if 'jesus christ' in uil:
-        understanding = {'intent':'jason bourne'}
+        understanding = {'easter_egg':'jb'}
         return understanding
 
     tokens = user_input.strip('?').split()
@@ -60,7 +56,10 @@ def parse_user_input(user_input=''):
     understanding['season'] = []
     for token in tokens[1:]:
         if token[0].isupper():
-            understanding['player_name'].append(token)
+            if token[-2:] == "\'s":
+                understanding['player_name'].append(token[:-2])
+            else:
+                understanding['player_name'].append(token)
         if token.isdigit():
             understanding['season'].append(token)
 
@@ -74,8 +73,6 @@ def parse_user_input(user_input=''):
             understanding['categories'].append('birthday')
     
     elif 'drafted' in uil: # draft specific query
-        understanding['draft'] = True
-
         if 'who' in uil or 'team' in uil:
             understanding['categories'].append('draft_team')
 
@@ -85,15 +82,24 @@ def parse_user_input(user_input=''):
         if 'where' in uil or 'position' in uil or 'overall' in uil:
             understanding['categories'].append('draft_overall')
 
+        if len(understanding['categories']) == 0:
+            understanding['categories'] += ['draft_team', 'draft_year', 'draft_overall']
+
+
+    elif 'team' in uil or ('where' in uil and 'play' in uil):
+        understanding['categories'].append('Team')
+
     elif 'position' in uil:
         understanding['categories'].append('position')
 
-    elif 'was' in uil or 'did' in uil:  # past tense query
-        understanding['past_tense'] = True
-
-
     if 'old' in uil or 'age' in 'uil':
         understanding['categories'].append('age')
+
+    if 'tall' in uil or 'height' in 'uil':
+        understanding['categories'].append('height')
+
+    if 'weigh' in uil:
+        understanding['categories'].append('weight')
 
     if 'gaa' in uil or 'goals against' in uil:
         understanding['categories'].append('GAA')
@@ -102,9 +108,6 @@ def parse_user_input(user_input=''):
 
     if 'save' in uil or '%' in uil:
         understanding['categories'].append('SVS%')
-
-    if 'team' in uil:
-        understanding['categories'].append('TEAM')
 
     if 'assists' in uil or 'apples' in uil:
         understanding['categories'].append('A')
@@ -127,6 +130,9 @@ def parse_user_input(user_input=''):
 
     if 'signing bonus' in uil:
         understanding['categories'].append('S. BONUSES')
+
+    if 'playoff' in uil:
+        understanding['playoff']  = True
 
     return understanding
 
